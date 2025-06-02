@@ -1,4 +1,5 @@
 use std::time::Instant;
+use std::io::{self, Write};
 
 const INF: i32 = i32::MAX / 2;
 
@@ -66,7 +67,61 @@ fn print_matrix(matrix: &[Vec<i32>]) {
     }
 }
 
-fn main() {
+fn get_input() -> io::Result<String> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_string())
+}
+
+fn create_matrix_from_input() -> Vec<Vec<i32>> {
+    print!("Enter the number of cities: ");
+    io::stdout().flush().unwrap();
+    
+    let n: usize = loop {
+        match get_input().unwrap().parse() {
+            Ok(num) if num > 0 => break num,
+            _ => {
+                print!("Please enter a valid positive number: ");
+                io::stdout().flush().unwrap();
+            }
+        }
+    };
+    
+    println!("Enter the distance matrix ({} x {} matrix):", n, n);
+    println!("Enter each row separated by spaces:");
+    
+    let mut matrix = vec![vec![0; n]; n];
+    
+    for i in 0..n {
+        loop {
+            print!("Row {} (cities 0 to {}): ", i + 1, n - 1);
+            io::stdout().flush().unwrap();
+            
+            let input = get_input().unwrap();
+            let values: Result<Vec<i32>, _> = input
+                .split_whitespace()
+                .map(|s| s.parse::<i32>())
+                .collect();
+            
+            match values {
+                Ok(row) if row.len() == n => {
+                    matrix[i] = row;
+                    break;
+                }
+                Ok(_) => {
+                    println!("Error: Please enter exactly {} values", n);
+                }
+                Err(_) => {
+                    println!("Error: Please enter valid integers");
+                }
+            }
+        }
+    }
+    
+    matrix
+}
+
+fn run_predefined_tests() {
     let test_cases = vec![
         (
             "Test 1",
@@ -95,45 +150,6 @@ fn main() {
                 vec![8, 6, 20, 4, 0],
             ],
         ),
-        (
-            "Test 4",
-            vec![
-                vec![0, 100, 200, 150],
-                vec![100, 0, 50, 75],
-                vec![200, 50, 0, 25],
-                vec![150, 75, 25, 0],
-            ],
-        ),
-        (
-            "Test 5",
-            vec![
-                vec![0, 20, 42, 25, 30, 34],
-                vec![20, 0, 30, 34, 20, 25],
-                vec![42, 30, 0, 10, 25, 15],
-                vec![25, 34, 10, 0, 15, 30],
-                vec![30, 20, 25, 15, 0, 20],
-                vec![34, 25, 15, 30, 20, 0],
-            ],
-        ),
-        (
-            "Test 6",
-            vec![
-                vec![0, 10, 8, 9],
-                vec![5, 0, 7, 6],
-                vec![12, 11, 0, 4],
-                vec![15, 13, 14, 0],
-            ],
-        ),
-        (
-            "Test 7 ",
-            vec![
-                vec![0, 1, 10, 10, 10],
-                vec![1, 0, 1, 10, 10],
-                vec![10, 1, 0, 1, 10],
-                vec![10, 10, 1, 0, 1],
-                vec![10, 10, 10, 1, 0],
-            ],
-        ),
     ];
 
     for (name, matrix) in test_cases {
@@ -144,5 +160,35 @@ fn main() {
         println!("Path: {}", path.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" -> "));
         println!("Time taken: {:.4} ms", time);
         println!("{}", "-".repeat(40));
+    }
+}
+
+fn main() {
+    println!("TSP Solver");
+    println!("1. Enter custom matrix");
+    println!("2. Run predefined test cases");
+    print!("Choose option (1 or 2): ");
+    io::stdout().flush().unwrap();
+    
+    let choice = get_input().unwrap();
+    
+    match choice.as_str() {
+        "1" => {
+            let matrix = create_matrix_from_input();
+            println!("\nDistance Matrix:");
+            print_matrix(&matrix);
+            
+            let (cost, path, time) = solve(&matrix);
+            println!("Minimum Cost: {}", cost);
+            println!("Path: {}", path.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" -> "));
+            println!("Time taken: {:.4} ms", time);
+        }
+        "2" => {
+            run_predefined_tests();
+        }
+        _ => {
+            println!("Invalid option. Running predefined tests...");
+            run_predefined_tests();
+        }
     }
 }
